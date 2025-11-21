@@ -5,8 +5,13 @@ C:\Users\u5751473\source\repos\CG2\Maths.h(459,13): warning C4244: '=': conversi
 C:\Users\u5751473\source\repos\CG2\Main.cpp(82,60): warning C4244: 'argument': conversion from 'float' to 'unsigned char', possible loss of data
 C:\Users\u5751473\source\repos\CG2\Main.cpp(82,46): warning C4244: 'argument': conversion from 'float' to 'unsigned char', possible loss of data
 C:\Users\u5751473\source\repos\CG2\Main.cpp(82,32): warning C4244: 'argument': conversion from 'float' to 'unsigned char', possible loss of data
-C:\Users\u5751473\source\repos\CG2\Main.cpp(158,25): warning C4305: 'initializing': truncation from 'double' to 'float'
-C:\Users\u5751473\source\repos\CG2\Main.cpp(191,18): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-C:\Users\u5751473\source\repos\CG2\Main.cpp(193,30): warning C4018: '<': signed/unsigned mismatch
-C:\Users\u5751473\source\repos\CG2\Main.cpp(196,68): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
+C:\Users\u5751473\source\repos\CG2\Main.cpp(146,61): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+C:\Users\u5751473\source\repos\CG2\Main.cpp(159,14): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\u5751473\source\repos\CG2\Main.cpp(160,16): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\u5751473\source\repos\CG2\Main.cpp(160,11): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\u5751473\source\repos\CG2\Main.cpp(161,17): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\u5751473\source\repos\CG2\Main.cpp(161,11): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\u5751473\source\repos\CG2\Main.cpp(181,25): warning C4305: 'initializing': truncation from 'double' to 'float'
+C:\Users\u5751473\source\repos\CG2\Main.cpp(205,18): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+C:\Users\u5751473\source\repos\CG2\Main.cpp(207,30): warning C4018: '<': signed/unsigned mismatch
   CG2.vcxproj -> C:\Users\u5751473\source\repos\CG2\x64\Debug\Rasterization.exe

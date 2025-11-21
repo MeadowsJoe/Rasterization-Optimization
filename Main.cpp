@@ -129,8 +129,21 @@ public:
 	}
 };
 
-void trianglePipeline() {
+void trianglePipeline(GamesEngineeringBase::Window& canvas, Matrix& view, Triangle& t
+	, Vec3& from, Vec3& to, Vec3& up, Vec4& sv0, Vec4& sv1, Vec4& sv2, Vec4& wv0, Vec4& wv1, Vec4& wv2
+	, Matrix& projMatrix, float& v0_w, float& v1_w, float& v2_w, Vec4& tr, Vec4& bl, float width, float height, float* z_buffer){
 
+	view = t.lookAtMatrix(from, to, up);
+
+	sv0 = t.vertToScreenSpace(wv0, view, projMatrix, canvas, v0_w);
+	sv1 = t.vertToScreenSpace(wv1, view, projMatrix, canvas, v1_w);
+	sv2 = t.vertToScreenSpace(wv2, view, projMatrix, canvas, v2_w);
+
+	t.findBounds(sv0, sv1, sv2, tr, bl, canvas);
+
+	
+
+	t.computeTriangle(sv0, sv1, sv2, tr, bl, canvas, z_buffer, width, v0_w, v1_w, v2_w);
 }
 
 
@@ -143,13 +156,21 @@ int main() {
 	Vec4 tr;
 	Vec4 bl;
 
-	Vec4 wv0(0.0f, 0.05f, 1.0f, 1.0f);
-	Vec4 wv1(6.0f, -0.03f, 1.0f, 1.0f);
-	Vec4 wv2(-3.0f, -0.05f, 1.0f, 1.0f);//z values control distance of points
+	Vec4 wv0(0, 0.3, 4, 1);  //z vlaues control distance of points (ie. larger z makes smaller triangle)
+	Vec4 wv1(0.3, -0.3, 4, 1);
+	Vec4 wv2(-0.3, -0.3, 4, 1);
 	Vec4 sv0;
 	Vec4 sv1;
 	Vec4 sv2;
 	float v0_w, v1_w, v2_w;
+
+	Vec4 wv3(0.1f, 0.4f, 5.0f, 1.0f);  // higher & right
+	Vec4 wv4(0.5f, -0.2f, 5.0f, 1.0f);  // pushed right
+	Vec4 wv5(-0.1f, -0.1f, 5.0f, 1.0f);
+	Vec4 sv3;
+	Vec4 sv4;
+	Vec4 sv5;
+	float v3_w, v4_w, v5_w;
 
 	Triangle t;
 	Matrix projMatrix;
@@ -172,30 +193,22 @@ int main() {
 	while(true){
 		canvas.clear();
 
-		if (canvas.keyPressed('W')) wv0.z += 0.1f;
-		if (canvas.keyPressed('S')) wv0.z -= 0.1f;
+		if (canvas.keyPressed('W')) from.z += 0.1f;
+		if (canvas.keyPressed('S')) from.z -= 0.1f;
 		if (canvas.keyPressed('A')) {
-			wv0.x -= 0.1f; wv1.x -= 0.1f; wv2.x -= 0.1f;
+			from.x -= 0.1f; from.x -= 0.1f; from.x -= 0.1f;
 		}
 		if (canvas.keyPressed('D')) {
-			wv0.x += 0.1f; wv1.x += 0.1f; wv2.x += 0.1f;
+			from.x += 0.1f; from.x += 0.1f; from.x += 0.1f;
 		}
-
-
-		view = t.lookAtMatrix(from, to, up);
-		
-		sv0 = t.vertToScreenSpace(wv0, view, projMatrix, canvas, v0_w);
-		sv1 = t.vertToScreenSpace(wv1, view, projMatrix, canvas, v1_w);
-		sv2 = t.vertToScreenSpace(wv2, view, projMatrix, canvas, v2_w);
-
-		t.findBounds(sv0, sv1, sv2, tr, bl, canvas);
 
 		int pixelCount = width * height;
 		std::unique_ptr<float[]> z_buffer = std::make_unique<float[]>(pixelCount);
 		for (unsigned int i = 0; i < pixelCount; i++)
 			z_buffer[i] = 1.0f;
-
-		t.computeTriangle(sv0, sv1, sv2, tr, bl, canvas, z_buffer.get(), width, v0_w, v1_w, v2_w);
+		
+		trianglePipeline(canvas, view, t, from, to, up, sv0, sv1, sv2, wv0, wv1, wv2, projMatrix, v0_w, v1_w, v2_w, tr, bl, width, height, z_buffer.get());
+		trianglePipeline(canvas, view, t, from, to, up, sv3, sv4, sv5, wv3, wv4, wv5, projMatrix, v3_w, v4_w, v5_w, tr, bl, width, height, z_buffer.get());
 
 		canvas.present();
 	}
