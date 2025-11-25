@@ -200,6 +200,8 @@ public:
 		w = _w;
 	}
 
+	Vec4(const Vec3& v, float _w = 1.0f) : x(v.x), y(v.y), z(v.z), w(_w){}
+
 	// Component-wise addition. Returns a new Vec4 = this + pVec.
 	Vec4 operator+(const Vec4& pVec) const
 	{
@@ -471,6 +473,31 @@ public:
 		m[11] = (-_far * _near) / (_far - _near);
 		m[14] = 1;
 		m[15] = 0;
+	}
+
+	static Matrix lookAt(Vec3& from, Vec3& to, Vec3& up) {
+		Vec3 dir = (to - from).normalise();
+		Vec3 right = (up.Cross(dir)).normalise();
+		Vec3 up2 = dir.Cross(right);
+
+		Matrix look;
+		look[0] = right.x;
+		look[1] = right.y;
+		look[2] = right.z;
+
+		look[4] = up2.x;
+		look[5] = up2.y;
+		look[6] = up2.z;
+
+		look[8] = dir.x;
+		look[9] = dir.y;
+		look[10] = dir.z;
+
+		look[3] = -right.Dot(from);
+		look[7] = -up2.Dot(from);
+		look[11] = -dir.Dot(from);
+
+		return look;
 	}
 };
 

@@ -2,6 +2,7 @@
 
 #include "Maths.h"
 #include "GamesEngineeringBase.h"
+#include "GEMLoader.h"
 
 
 template<typename t>
@@ -12,7 +13,6 @@ t simpleInterpolateAttribute(t a0, t a1, t a2, float alpha, float beta, float ga
 template<typename t>
 t perspectiveCorrectInterpolateAttribute(t a0, t a1, t a2, float v0_w, float v1_w, float v2_w, float alpha, float beta, float gamma, float frag_w)
 {
-	
 	t attrib[3];
 	attrib[0] = a0 * alpha * v0_w;
 	attrib[1] = a1 * beta * v1_w;
@@ -20,13 +20,34 @@ t perspectiveCorrectInterpolateAttribute(t a0, t a1, t a2, float v0_w, float v1_
 	return ((attrib[0] + attrib[1] + attrib[2]) / frag_w);
 }
 
+struct Camera {
+	Vec3 from;
+	Vec3 to;
+	Vec3 up;
+	Matrix view;
+	Matrix projection;
+};
+
+struct TriangleInputs {
+	Vec4 wv0, wv1, wv2;
+	Vec3 N0, N1, N2;
+};
+
+struct ScreenInfo {
+	float width;
+	float height;
+	float* z_buffer;
+	Vec4 topRight;
+	Vec4 bottomLeft;
+};
+
 class Triangle {
 public:
 	/*Vec4 v0;
 	Vec4 v1;
 	Vec4 v2;*/
-	
-	/*Triangle() 
+
+	/*Triangle()
 		: v0(0.0f, 0.0f, 0.0f, 0.0f)
 		, v1(0.0f, 0.0f, 0.0f, 0.0f)
 		, v2(0.0f, 0.0f, 0.0f, 0.0f){}
@@ -38,10 +59,9 @@ public:
 	Triangle() {}
 
 	//returns C0 - cross product of edge 0
-	float edgeFunction(const Vec4& v0, const Vec4& v1, const Vec4& p){
+	float edgeFunction(const Vec4& v0, const Vec4& v1, const Vec4& p) {
 		return (((p.x - v0.x) * (v1.y - v0.y)) - ((v1.x - v0.x) * (p.y - v0.y)));
 	}
-	
 
 	//tr == top right, bl = bottom left
 	void findBounds(const Vec4& v0, const Vec4& v1, const Vec4& v2, Vec4& tr, Vec4& bl, GamesEngineeringBase::Window& canvas) {
@@ -51,7 +71,16 @@ public:
 		bl.y = max(min(min(v0.y, v1.y), v2.y), 0);
 	}
 
-	void computeTriangle(const Vec4& v0, const Vec4& v1, const Vec4& v2, Vec4& tr, Vec4& bl
+	Colour ambientLightShading(Vec3& N0, Vec3& N1, Vec3& N2, float v0_w, float v1_w, float v2_w, float alpha, float beta, float gamma, float frag_w) {
+		Vec3 omega_i = Vec3(1, 1, 0).normalise();
+		Vec3 N = perspectiveCorrectInterpolateAttribute(N0, N1, N2, v0_w, v1_w, v2_w, alpha, beta, gamma, frag_w).normalise();
+		Colour rho(0.98f, 0.6f, 0.78f, 1.0f);
+		Colour L(1.0f, 1.0f, 1.0f, 1.0f);
+		Colour ambient(0.6f, 0.6f, 0.6f, 1.0f);
+		return ((rho / M_PI) * (L * max(Dot(omega_i, N), 0.0f) + ambient));
+	}
+
+	void computeTriangle(const Vec4& v0, const Vec4& v1, const Vec4& v2, Vec3& n0, Vec3& n1, Vec3& n2, Vec4& tr, Vec4& bl
 		, GamesEngineeringBase::Window& canvas, float* z_buffer, int bufferWidth, float v0_w, float v1_w, float v2_w) {
 		float projArea = edgeFunction(v0, v1, v2);
 
@@ -75,7 +104,8 @@ public:
 					&& gamma > 0 && gamma < 1) {
 					float frag_w = ((alpha * v0_w) + (beta * v1_w) + (gamma * v2_w));
 					float zfrag = perspectiveCorrectInterpolateAttribute(float(v0.z), float(v1.z), float(v2.z), v0_w, v1_w, v2_w, alpha, beta, gamma, frag_w);
-					Colour frag = perspectiveCorrectInterpolateAttribute(Colour(1.0f, 0, 0, 1), Colour(0, 1.0f, 0, 1), Colour(0, 0, 1.0f, 1), v0_w, v1_w, v2_w, alpha, beta, gamma, frag_w);
+					//Colour frag = perspectiveCorrectInterpolateAttribute(Colour(1.0f, 0, 0, 1), Colour(0, 1.0f, 0, 1), Colour(0, 0, 1.0f, 1), v0_w, v1_w, v2_w, alpha, beta, gamma, frag_w);
+					Colour frag = ambientLightShading(n0, n1, n2, v0_w, v1_w, v2_w, alpha, beta, gamma, frag_w);
 					int idx = y * bufferWidth + x;
 					if (zfrag < z_buffer[idx]) {
 						z_buffer[idx] = zfrag;
@@ -87,14 +117,14 @@ public:
 	}
 
 	Vec4 vertToScreenSpace(Vec4& vWorld, Matrix& view, Matrix& proj, GamesEngineeringBase::Window& canvas, float& clip_w) {
-		Matrix vp = proj.mul(view);
+		Matrix viewProj = proj.mul(view);
 
-		Vec4 clip = vp.mul(vWorld);
+		Vec4 clip = viewProj.mul(vWorld);
 
 		clip_w = 1/clip.w;
 
 		clip.divW();
-		
+
 		Vec4 pixel;
 		pixel.x = ((clip.x + 1) / 2) * canvas.getWidth();
 		pixel.y = ((1 - clip.y) / 2) * canvas.getHeight(); //as canvas y increased downward
@@ -103,47 +133,28 @@ public:
 		return pixel;
 	}
 
-	Matrix lookAtMatrix(Vec3& from, Vec3& to, Vec3& up) {
-		Vec3 dir = (to - from).normalise();
-		Vec3 right = (up.Cross(dir)).normalise();
-		Vec3 up2 = dir.Cross(right);
-
-		Matrix look;
-		look[0] = right.x;
-		look[1] = right.y;
-		look[2] = right.z;
-		
-		look[4] = up2.x;
-		look[5] = up2.y;
-		look[6] = up2.z;
-
-		look[8] = dir.x;
-		look[9] = dir.y;
-		look[10] = dir.z;
-
-		look[3] = -right.Dot(from);
-		look[7] = -up2.Dot(from);
-		look[11] = -dir.Dot(from);
-
-		return look;
-	}
 };
 
-void trianglePipeline(GamesEngineeringBase::Window& canvas, Matrix& view, Triangle& t
-	, Vec3& from, Vec3& to, Vec3& up, Vec4& sv0, Vec4& sv1, Vec4& sv2, Vec4& wv0, Vec4& wv1, Vec4& wv2
-	, Matrix& projMatrix, float& v0_w, float& v1_w, float& v2_w, Vec4& tr, Vec4& bl, float width, float height, float* z_buffer){
+void trianglePipeline(
+	GamesEngineeringBase::Window& canvas,
+	Camera& cam,
+	Triangle& t,
+	TriangleInputs& in,
+	ScreenInfo& screen) {
 
-	view = t.lookAtMatrix(from, to, up);
+	float v0_w; float v1_w; float v2_w;
 
-	sv0 = t.vertToScreenSpace(wv0, view, projMatrix, canvas, v0_w);
-	sv1 = t.vertToScreenSpace(wv1, view, projMatrix, canvas, v1_w);
-	sv2 = t.vertToScreenSpace(wv2, view, projMatrix, canvas, v2_w);
+	Vec4 sv0 = t.vertToScreenSpace(in.wv0, cam.view, cam.projection, canvas, v0_w);
+	Vec4 sv1 = t.vertToScreenSpace(in.wv1, cam.view, cam.projection, canvas, v1_w);
+	Vec4 sv2 = t.vertToScreenSpace(in.wv2, cam.view, cam.projection, canvas, v2_w);
 
-	t.findBounds(sv0, sv1, sv2, tr, bl, canvas);
+	t.findBounds(sv0, sv1, sv2, screen.topRight, screen.bottomLeft, canvas);
 
-	
-
-	t.computeTriangle(sv0, sv1, sv2, tr, bl, canvas, z_buffer, width, v0_w, v1_w, v2_w);
+	t.computeTriangle(sv0, sv1, sv2
+		, in.N0, in.N1, in.N2
+		, screen.topRight, screen.bottomLeft
+		, canvas, screen.z_buffer, screen.width
+		, v0_w, v1_w, v2_w);
 }
 
 
@@ -152,70 +163,81 @@ int main() {
 
 	canvas.create(1024, 768, "Tile");
 
+	GamesEngineeringBase::Timer tim;
 
-	Vec4 tr;
-	Vec4 bl;
-
-	Vec4 wv0(0, 0.3, 4, 1);  //z vlaues control distance of points (ie. larger z makes smaller triangle)
-	Vec4 wv1(0.3, -0.3, 4, 1);
-	Vec4 wv2(-0.3, -0.3, 4, 1);
-	Vec4 sv0;
-	Vec4 sv1;
-	Vec4 sv2;
-	float v0_w, v1_w, v2_w;
-
-	Vec4 wv3(0.1f, 0.4f, 5.0f, 1.0f);  // higher & right
-	Vec4 wv4(0.5f, -0.2f, 5.0f, 1.0f);  // pushed right
-	Vec4 wv5(-0.1f, -0.1f, 5.0f, 1.0f);
-	Vec4 sv3;
-	Vec4 sv4;
-	Vec4 sv5;
-	float v3_w, v4_w, v5_w;
-
-	Triangle t;
-	Matrix projMatrix;
-
+	float time = 0;
 	const float width = (float)canvas.getWidth();
 	const float height = (float)canvas.getHeight();
 	const float aspect = width / height;
-	const float fov = M_PI / 4.0f;
+	const float fov = M_PI / 2.0f;
 	const float _near = 0.1f;
 	const float _far = 1000.0f;
-	projMatrix.projMat(fov, aspect, _far, _near);
+	float r = 0.5f;
+	float angle = 0.0f;
+	float angleSpeed = 0.005f;
 
-	// Build view matrix using your lookAtMatrix (ensure its convention matches your math)
-	Vec3 from = Vec3(0.0f, 0.0f, 0.0f);    // camera position
-	Vec3 to = Vec3(0.0f, 0.0f, 1.0f);    // look direction
-	Vec3 up = Vec3(0.0f, 1.0f, 0.0f);
-	Matrix view;
+	Camera cam;
+	// Build view matrix using your lookAt() (ensure its convention matches your math)
+	cam.from = Vec3(0.0f, 0.08f, 0.0f);    // camera position //from
+	cam.to = Vec3(0.0f, 0.05f, 0.0f);    // look direction //to
+	cam.up = Vec3(0.0f, 1.0f, 0.0f);
+	cam.projection.projMat(fov, aspect, _far, _near);
 
+	Vec4 tr, bl;
+	Triangle t;
+	
+	std::vector<GEMLoader::GEMMesh> gemmeshes;
+	GEMLoader::GEMModelLoader loader;
 
-	while(true){
+	loader.load("Resources/bunny.gem", gemmeshes);
+	std::vector<Vec3> vertexList;
+	std::vector<Vec3> normalList;
+	for (int i = 0; i < gemmeshes.size(); i++) {
+		for (int j = 0; j < gemmeshes[i].indices.size(); j++) {
+			GEMLoader::GEMVec3 vec;
+			GEMLoader::GEMVec3 nor;
+			int index = gemmeshes[i].indices[j];
+			vec = gemmeshes[i].verticesStatic[index].position;
+			nor = gemmeshes[i].verticesStatic[index].normal;
+			vertexList.push_back(Vec3(vec.x, vec.y, vec.z));
+			normalList.push_back(Vec3(nor.x, nor.y, nor.z));
+		}
+	}
+
+	while (true) {
 		canvas.clear();
 
-		if (canvas.keyPressed('W')) from.z += 0.1f;
-		if (canvas.keyPressed('S')) from.z -= 0.1f;
-		if (canvas.keyPressed('A')) {
-			from.x -= 0.1f; from.x -= 0.1f; from.x -= 0.1f;
-		}
-		if (canvas.keyPressed('D')) {
-			from.x += 0.1f; from.x += 0.1f; from.x += 0.1f;
-		}
+		if (canvas.keyPressed(VK_UP)) r += 0.05;
+		if (canvas.keyPressed(VK_DOWN)) r -= 0.05;
+
+		float dt = tim.dt();
+		time += dt;
+
+		cam.from = Vec3(r * cos(time), cam.from.y, r * sinf(time));
+		cam.view = Matrix::lookAt(cam.from, cam.to, cam.up); 
+		//this lookat funciton is static, meaning it belongs to the class itself and not the instance, so dont need to create an instance to call it.
 
 		int pixelCount = width * height;
 		std::unique_ptr<float[]> z_buffer = std::make_unique<float[]>(pixelCount);
 		for (unsigned int i = 0; i < pixelCount; i++)
 			z_buffer[i] = 1.0f;
-		
-		trianglePipeline(canvas, view, t, from, to, up, sv0, sv1, sv2, wv0, wv1, wv2, projMatrix, v0_w, v1_w, v2_w, tr, bl, width, height, z_buffer.get());
-		trianglePipeline(canvas, view, t, from, to, up, sv3, sv4, sv5, wv3, wv4, wv5, projMatrix, v3_w, v4_w, v5_w, tr, bl, width, height, z_buffer.get());
+
+		ScreenInfo screen{ width, height, z_buffer.get(), tr, bl };
+
+		for (unsigned int i = 0; i < vertexList.size()/3; i++) {
+			TriangleInputs tri{
+			Vec4 (vertexList[3 * i + 0]),
+			Vec4 (vertexList[3 * i + 1]),
+			Vec4 (vertexList[3 * i + 2]),
+			normalList[3 * i + 0],
+			normalList[3 * i + 1],
+			normalList[3 * i + 2]
+			};
+			trianglePipeline(canvas, cam, t, tri, screen);
+		}
 
 		canvas.present();
 	}
 
 	return 0;
 }
-//fix rasterization -- DONE
-//build 3d triangle using projection matrix -- DONE
-//build look at matrix
-//implement simple shading -- Moving bunny
