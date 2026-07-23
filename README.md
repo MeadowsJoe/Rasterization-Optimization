@@ -36,3 +36,10 @@ A CPU software rasteriser optimised for performance, reaching **3 to 5x speedups
 ## Tech stack
 
 C++20 · AVX2 · std::jthread
+
+## Full technical write-up
+
+The full breakdown of each optimisation and its measured impact is in
+[docs/CPURasterizerOpt report.pdf](docs/CPURasterizerOpt report.pdf).
+
+
