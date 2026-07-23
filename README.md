@@ -40,6 +40,6 @@ C++20 · AVX2 · std::jthread
 ## Full technical write-up
 
 The full breakdown of each optimisation and its measured impact is in
-[docs/CPURasterizerOptReport.pdf](docs/CPURasterizerOptReport.pdf).
+[docs/CPURasterizerOptReport.pdf](docs/rasteriser_TECHNICAL.md).
 
 
