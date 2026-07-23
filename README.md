@@ -6,18 +6,25 @@
 
 A CPU software rasteriser optimised for performance, reaching **3 to 5x speedups** through SIMD vectorisation, multithreading, and cache-aware restructuring. Written in C++20.
 
-![Output](docs/banner.png)
-<!-- TODO: a rendered output screenshot, plus a before/after benchmark bar chart. The chart is your strongest visual for a performance project. -->
+## Performance
+
+| Scene 1 | Scene 2 | Scene 3 |
+|:---:|:---:|:---:|
+| ![](docs/Scene1Bar.png) | ![](docs/Scene2Bar.png) | ![](docs/Scene3Bar.png) |
+
+## Output
+
+| Scene 1 | Scene 2 | Scene 3 |
+|:---:|:---:|:---:|
+| ![](docs/Scene1Gif.gif) | ![](docs/Scene2Gif.gif) | ![](docs/Scene3Gif.gif) |
 
 ## Results
 
 | Scene | Baseline (ms) | Optimised (ms) | Speedup |
 |---|---|---|---|
-| Scene A | TODO | TODO | 3.1x |
-| Scene B | TODO | TODO | 5.2x |
-| Scene C | TODO | TODO | 3.4x |
-
-<!-- TODO: fill in the real timings from your report -->
+| Scene 1 | 5364 | 1707 | 3.14x |
+| Scene 2 | 2091 | 399 | 5.24x |
+| Scene 3 | 5020 | 1472 | 3.41x |
 
 ## Approach
 
@@ -29,24 +36,3 @@ A CPU software rasteriser optimised for performance, reaching **3 to 5x speedups
 ## Tech stack
 
 C++20 · AVX2 · std::jthread
-
-## Build & run
-
-<!-- TODO: your build and benchmark steps -->
-```
-Requires: a C++20 compiler with AVX2 support.
-git clone https://github.com/MeadowsJoe/<repo>.git
-# build (Release / -O2 with AVX2 enabled), then run the benchmark
-```
-
-## Full technical write-up
-
-The full breakdown of each optimisation and its measured impact is in
-[docs/technical-writeup.pdf](docs/technical-writeup.pdf).
-<!-- TODO: add your cleaned report here -->
-
-## Future work
-
-- AVX-512 path where available.
-- GPU comparison baseline.
-- Tile-based threading to cut false sharing.
