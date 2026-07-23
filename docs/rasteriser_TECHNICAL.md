@@ -117,7 +117,7 @@ I then compared four strategies, measured across thread counts:
 |:---:|:---:|
 | ![](SceneMTOpt.png) | ![](SceneMTStripOpt.png) |
 | **MT Pool** | **MT Strip & Pool** |
-| ![](SceneMTPoolOpt.png) | ![](SceneMTPoolStrip.png) |
+| ![](SceneMTPoolOpt.png) | ![](SceneMTPoolStripOpt.png) |
 
 ## What the threading results actually showed
 
